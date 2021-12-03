@@ -29,7 +29,7 @@ class BrokerConfig:
             raise Exception('Has no attribute.')
 
 class MQTTConfig:
-    CONFIG.read_file(open(path.join(CURRENT_PATH, 'mqtt.conf')))
+    CONFIG.read_file(open(path.join(CURRENT_PATH, 'mqtt2.conf')))
     Broker = CONFIG.get(section='CONNECTION', option='Broker')
     Port = CONFIG.get(section='CONNECTION', option='Port')
     Keepalive = CONFIG.get(section='CONNECTION', option='Keepalive')

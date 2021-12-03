@@ -1,3 +1,4 @@
+import random, string
 from rich.console import Console
 from rich.traceback import install
 
@@ -30,7 +31,7 @@ class Client:
         self.keepalive = keepalive
         self.subs = subs
         self.pubs = pubs
-        self.client = mqtt.Client('SolveMazeBot')
+        self.client = mqtt.Client(''.join(random.choice(string.ascii_uppercase + string.digits) for _ in range(10)))
         self.client.username_pw_set(self.username, self.password)
         self.client.connect(self.broker, self.port, self.keepalive)
         self.on_data_fnc = on_data_fnc if on_data_fnc != None else self.__on_data
@@ -72,12 +73,18 @@ class Client:
 
     def pub(self, topics_payload_pair:dict, verbose:bool=False) -> bool:
         for topic in topics_payload_pair.keys():
-            result = self.client.publish(topic, topics_payload_pair[topic], self.qos)
+            if topic.lower() in self.subs.keys():
+                topic_path = self.subs[topic.lower()]
+            elif topic in self.subs.values():
+                topic_path = topic.lower()
+            else:
+                topic_path = topic
+            result = self.client.publish(topic_path, topics_payload_pair[topic], self.qos)
             if verbose:
                 if result[0] == 0:
                     print(f'Publish to topic: {topic} successfully.')
                 else:
-                    print(f'Failed to publish to topic: {topic}.')
+                    print(f'Failed to publish to topic: {topic}, {result}.')
         return True if result == 0 else False
 
     def __on_data(self, mosq, obj, msg):

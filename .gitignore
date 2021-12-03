@@ -1,5 +1,8 @@
 *.conf
 *.cfg
+*.png
+.DS_STORE
+test2.py
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
