@@ -38,10 +38,12 @@ class Client:
         self.client.on_message = self.on_data_fnc
         self.subs_val = dict()
         self.cache_sub_ret = dict()
+        self.__first_sub = 0
         topics_lst = []
         for topic in self.subs.keys():
             topics_lst.append((self.subs[topic], self.qos))
-        [status, msg_id] = self.client.subscribe(topics_lst)
+            self.__first_sub += 1
+        [status, msg_id] = self.client.subscribe(topics_lst, self.qos)
         if len(self.subs) != 0:
             for ch in subs:
                 self.subs_val[ch.lower()] = None
@@ -79,7 +81,7 @@ class Client:
                 topic_path = topic.lower()
             else:
                 topic_path = topic
-            result = self.client.publish(topic_path, topics_payload_pair[topic], self.qos)
+            result = self.client.publish(topic_path, topics_payload_pair[topic], self.qos, retain=False)
             if verbose:
                 if result[0] == 0:
                     print(f'Publish to topic: {topic} successfully.')
@@ -88,6 +90,9 @@ class Client:
         return True if result == 0 else False
 
     def __on_data(self, mosq, obj, msg):
+        if self.__first_sub > 0:
+            self.__first_sub -= 1
+            return
         payload = msg.payload
         topic = msg.topic.split('/')[3]
         if payload:

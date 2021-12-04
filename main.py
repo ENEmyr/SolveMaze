@@ -1,33 +1,36 @@
-# from src.Client import Client
-from icecream import ic
-from src.ClientAnto import ClientAnto as Client
+from time import sleep
+import matplotlib.pyplot as plt
+from time import sleep
+from rich.console import Console
+from rich.traceback import install
+from src.Client import Client
 from src.Odometry import Odometry
-from configs import MQTTConfig
+from src.Mapper import Mapper
 
-def test():
-    config = MQTTConfig()
-    ic(config.SubTopics)
+console = Console()
+install() # install rich traceback
 
 def main():
-    client = Client(subs=['Maze_Distance'])
-    def on_run():
-        try:
-            distances = client.sub("Maze_Distance")
-            if distances != None:
-                if type(distances) == bytes:
-                    distances = distances.decode('utf-8')
-                    return distances
-            else:
-                # print("Idle")
-                pass
-            sleep(1)
-        except KeyboardInterrupt:
-            raise KeyboardInterrupt
-    client.connect(on_run)
-    odo = Odometry(client)
-    distances = odo.get_distances()
-    points = odo.transform2cartesian(distances)
-    print(odo)
+    block_length = 400
+    client = Client()
+    mapper = Mapper(maze_size=12, padd=True)
+    odo = Odometry()
+    client.loop_start()
+    try:
+        while True:
+            ret = client.sub(['AngularDistance', 'StopExplore'])
+            if ret['StopExplore'] != None:
+                break
+            if ret['AngularDistance'] != None:
+                forward_distance, rotate_angle = odo.maximum_forward_distance(ret['AngularDistance'])
+                mapper.map(forward_distance, rotate_angle, block_length)
+            sleep(.5)
+    except KeyboardInterrupt:
+        pass
+    maze = mapper.construct()
+    plt.axis('off')
+    plt.imshow(maze, cmap='Greys', interpolation='none')
+    plt.waitforbuttonpress()
 
 if __name__ == '__main__':
-    test()
+    main()
