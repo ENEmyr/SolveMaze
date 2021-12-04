@@ -22,10 +22,11 @@ function getArgs() {
 }
 
 const args = getArgs();
-const mazeSize = args['mazeSize'];
+const mazeWidth = args['mazeWidth'];
+const mazeHeight = args['mazeHeight'];
 const maze = args['maze'];
 
-console.log(mazeSize * 2)
+console.log(mazeWidth * mazeHeight)
 
 
 
