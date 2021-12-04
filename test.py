@@ -102,5 +102,11 @@ def test3():
     except:
         console.log('Stop')
 
+def test4():
+    import subprocess
+    p = subprocess.Popen(['node', './solver.js', '--mazeSize=3'], stdout=subprocess.PIPE)
+    output = p.stdout.read()
+    console.log(output.decode('utf-8'))
+
 if __name__ == '__main__':
-    test3()
+    test4()
