@@ -1,3 +1,4 @@
+import subprocess
 import threading
 import math
 import numpy as np
@@ -7,11 +8,13 @@ from time import sleep
 # from rich import print
 from rich.console import Console
 from rich.traceback import install
+from rich import pretty
 from src.Client import Client
 from src.Odometry import Odometry
 from src.Mapper import Mapper
 
 console = Console()
+pretty.install()
 install() # install rich traceback
 
 class SendMockdata (threading.Thread):
@@ -92,21 +95,151 @@ def test2():
     plt.waitforbuttonpress()
 
 def test3():
-    client = Client()
+    client = Client(verbose=True)
     client.loop_start()
     try:
         while True:
-            ret = client.sub(['AngularDistance', 'StopExplore'])
-            if ret['AngularDistance'] != None or ret['StopExplore'] != None:
+            ret = client.sub(['Command', 'StopExplore'])
+            if ret['Command'] != None:
                 console.log(log_locals=True)
+                client.pub({'Command': ''})
+                sleep(.5)
+            if ret['StopExplore'] != None:
+                console.log(log_locals=True)
+                client.pub({'StopExplore': ''})
+                sleep(.5)
+                break
+            sleep(.5)
+    except KeyboardInterrupt:
+        return
+    try:
+        while True:
+            ret = client.sub(['EntranceExit'])
+            if ret['EntranceExit'] != None:
+                console.log(log_locals=True)
+                client.pub({'EntranceExit': ''})
+                sleep(.5)
+                console.print(' > Entrance & Exit was Defined', style='green')
+                _entrance_exit = ret['EntranceExit'].split('|') # in form : aa, bb | cc, dd
+            sleep(.5)
     except:
-        console.log('Stop')
+        return
 
 def test4():
-    import subprocess
     p = subprocess.Popen(['node', './solver.js', '--mazeSize=3'], stdout=subprocess.PIPE)
     output = p.stdout.read()
     console.log(output.decode('utf-8'))
 
+def test5():
+    block_length = 400
+    # points = [(579, 0), (296, 0), (707, 90), (600, 90), (315, 0), (199, 0), (243, -90), (1080, -90),
+    #     (960, -90), (999, -90), (693, 0), (600, 0), (292, 0), (738, -90), (271, -90), (145, -90),
+    #     (433, -90), (187, -90), (155, -90), (603, -90), (318, 0), (196, 90), (0, 90), (436, 90),
+    #     (1363, 90), (1108, 0), (707, 0), (602, 0), (310, 0), (210, 0), (395, 90), (1784, 90),
+    #     (1797, 90), (1497, 0), (1398, 0), (1105, 0), (703, 0), (598, 0), (299, 0), (384, 90),
+    #     (996, 90), (877, 0), (935, 0), (649, 0), (704, 0), (647, 0), (957, -90), (0, -90), (0, -90)]
+    points = [
+            (400, 0), (400, -90), (400, 0), (400, 0),
+            (0, 90), (400, 90), (400, 0), (400, -90),
+            (400, 0), (400, -90), (400, 0), (0, 90),
+            (400, 90), (400, 0), (400, 0)
+        ]
+    points = [(-90, 561), (0, 180), (90, 183), (90, 561), (-90, 1545), (0, 1249), (0, 824),
+        (-90, 989), (0, 602), (0, 247), (90, 1380), (0, 642), (0, 247), (90, 0),
+        (90, 1363), (0, 644), (0, 252), (-90, 965), (0, 588), (0, 238), (-90, 1033),
+        (0, 649), (0, 239), (90, 0), (90, 1809), (-90, 995), (0, 614), (0, 244), (-90, 609),
+        (0, 229), (90, 578), (-90, 583), (0, 201), (90, 0), (90, 569), (90, 551),
+        (-90, 2833), (0, 1250), (0, 1021), (-90, 1044), (0, 660)]
+    points = [(-90, 574), (0, 194), (90, 146), (90, 561), (-90, 1825), (0, 1440), (-90, 960),
+        (0, 573), (0, 242), (90, 1385), (0, 1050), (0, 641), (0, 247), (90, 0), (90, 1369),
+        (0, 1049), (0, 646), (-90, 963), (0, 579), (-90, 1028), (0, 643), (0, 231), (90, 0),
+        (90, 1816), (-90, 981), (0, 599), (-90, 601), (0, 220), (90, 558), (-90, 600), (0, 219),
+        (90, 0), (90, 586), (0, 236), (90, 536), (-90, 1788), (0, 1413)]
+    # points = [(-90, 984), (0, 599), (0, 245), (90, 0), (90, 1387), (0, 1438), (0, 1041),
+    #     (-90, 1016), (0, 631), (-90, 985), (0, 1058), (0, 627), (0, 248), (90, 569),
+    #     (0, 253), (90, 0), (90, 559), (-90, 1828), (0, 1450), (-90, 1011), (0, 624),
+    #     (0, 237), (90, 1343), (0, 1044), (0, 644), (0, 244), (90, 0), (90, 1356), (0, 1044)]
+    block_length = 400
+    mapper = Mapper(maze_size=12, padd=True)
+    for point in points:
+        forward_distance = point[1]
+        rotate_angle = point[0]
+        mapper.map(forward_distance, rotate_angle, block_length)
+    maze = mapper.construct()
+    max_col = maze.shape[1]
+    _entrance = None
+    _exit = None
+    _entrance = [6, 3]
+    _exit = [4, 5]
+    plt.imshow(maze, cmap='Greys', interpolation='none')
+    plt.savefig('Maze2.png')
+    plt.waitforbuttonpress()
+    console.print('Before Transform\n', maze)
+    maze = np.where(maze>0, -1, maze)
+    maze = np.where(maze==0, 1, maze)
+    maze = np.where(maze==-1, 0, maze)
+    console.print('After Transform\n', maze)
+    maze = maze.flatten().astype('int')
+    maze_str = ''
+    row = 0
+    col = 0
+    for x in maze:
+        if row == _entrance[0] and col == _entrance[1]:
+            maze_str += 's'
+        elif row == _exit[0] and col == _exit[1]:
+            maze_str += 'f'
+        else:
+            maze_str += f'{x}'
+        col += 1
+        if col == max_col:
+            maze_str += '\n'
+            row += 1
+            col = 0
+    _entrance = ','.join([str(x) for x in _entrance])
+    console.print(maze_str)
+    p = subprocess.Popen(['node', './solver.js', f'--maze={maze_str}', f'--entrance={_entrance}'], stdout=subprocess.PIPE)
+    output = p.stdout.read()
+    commands = output.decode('utf-8').replace('\n', '').split(',')
+    console.log(commands)
+
+def test6():
+    from rich.progress import track
+    console.print('Estasblishing connection to MQTT Broker\n', style='bold cyan')
+    for step in track(range(5)):
+        sleep(.5)
+
+def test7():
+    cmds = [1,1,2,3]
+    client = Client(verbose=True)
+    client.loop_start()
+    latest_cmd = ''
+    while True:
+        ret = client.sub(['Command'])
+        if ret['Command'] != None and ret['Command'] != latest_cmd:
+            latest_cmd = str(cmds.pop())
+            client.pub({'Command': latest_cmd}, verbose=True)
+            console.log(log_locals=True)
+        if len(cmds) == 0:
+            break
+        sleep(.5)
+
+def test8():
+    client = Client(verbose=True)
+    client.loop_start()
+    try:
+        while True:
+            ret = client.sub(['Command'])
+            if ret['Command'] != None:
+                client.pub({'Command':''})
+                console.log(log_locals=True)
+            sleep(.5)
+    except:
+        while True:
+            ret = client.sub(['EntranceExit'])
+            if ret['EntranceExit'] != None:
+                client.pub({'EntranceExit':''})
+                console.log(log_locals=True)
+            sleep(.5)
+
 if __name__ == '__main__':
-    test4()
+    test8()

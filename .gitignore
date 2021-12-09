@@ -1,8 +1,10 @@
 *.conf
 *.cfg
 *.png
+*.npy
 .DS_STORE
 test2.py
+cut_str
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
