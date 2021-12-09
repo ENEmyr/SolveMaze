@@ -1,9 +1,6 @@
-# import threading
 import numpy as np
 import math
 from typing import Tuple, overload
-# from time import sleep
-# from rich import print
 from rich.console import Console
 from rich.traceback import install
 
@@ -128,57 +125,32 @@ class Mapper:
         # Trimming
         self.__maze = np.delete(self.__maze, np.where(~self.__maze.any(axis=0))[0], axis=1)
         self.__maze = np.delete(self.__maze, np.where(~self.__maze.any(axis=1))[0], axis=0)
+        # Make identical array
+        if self.__maze.shape[0] != self.__maze.shape[1]:
+            padd_width = self.__maze.shape[0]-self.__maze.shape[1]
+            if padd_width < 0: # col > row
+                # padd row
+                padd_width = self.__maze.shape[1]
+                self.__maze = np.append(self.__maze, [[0 for _ in range(padd_width)]], axis=0)
+                # if not all(map(lambda x: x == 0, self.__maze[:, 0])): # check head
+                #     # padd head
+                #     pass
+                # elif not all(map(lambda x: x == 0, self.__maze[:, -1])): # check tail
+                #     # padd tail
+                #     pass
+            elif padd_width > 0: # row > col
+                # padd col
+                padd_width = self.__maze.shape[0]
+                self.__maze = np.append(self.__maze, [[0] for _ in range(padd_width)], axis=1)
+                # if not all(map(lambda x: x == 0, self.__maze[0, :])):
+                #     # padd head
+                #     pass
+                # elif not all(map(lambda x: x == 0, self.__maze[-1, :])):
+                #     # padd tail
+                #     pass
+            else: # already identical
+                pass
         # Padding
         if self.__padd:
             self.__maze = np.pad(self.__maze, pad_width=1, mode='constant', constant_values=0)
         return self.__maze
-
-    # def construct(self) -> np.ndarray:
-    #     if len(self.__connected_points) == 0:
-    #         # return self.x_glob, self.y_glob
-    #         return self.__maze
-    #     curr_x = self.__maze_size//2
-    #     curr_y = self.__maze_size//2
-    #     old_x = curr_x
-    #     old_y = curr_y
-    #     sum_angle = 0
-    #     for point in self.__connected_points:
-    #         if sum_angle == 360:
-    #             sum_angle = 0
-    #         sum_angle += point[1]
-    #         if point[0] == 0:
-    #             continue
-    #         if np.all(self.__maze == 0):
-    #             self.__maze[curr_x][curr_y] = 1
-    #         for _ in range(1, point[0]+1):
-    #             if abs(sum_angle) != 90 and self.__maze[old_x][old_y] > 0:
-    #                 backward_blocks = math.ceil(point[0]/self.__distance_rescaling_factor)
-    #                 for _ in range(backward_blocks):
-    #                     if sum_angle == 0 or sum_angle == 360 or sum_angle == -360:
-    #                         curr_x += 1
-    #                         old_x = curr_x+1
-    #                     elif sum_angle == 180 or sum_angle == -180:
-    #                         curr_x -= 1
-    #                         old_x = curr_x-1
-    #             else:
-    #                 old_x = curr_x
-    #                 old_y = curr_y
-    #                 if sum_angle == 0 or sum_angle == 360 or sum_angle == -360:
-    #                     curr_x -= 1
-    #                 elif sum_angle == 90:
-    #                     curr_y += 1
-    #                 elif sum_angle == -90:
-    #                     curr_y -= 1
-    #                 elif sum_angle == 180 or sum_angle == -180:
-    #                     curr_x += 1
-    #                 else:
-    #                     raise ValueError("Invalid rotate angle")
-    #                 self.__maze[curr_x][curr_y] = 1
-    #             console.log(self.__maze, log_locals=True)
-    #     # Trimming
-    #     self.__maze = np.delete(self.__maze, np.where(~self.__maze.any(axis=0))[0], axis=1)
-    #     self.__maze = np.delete(self.__maze, np.where(~self.__maze.any(axis=1))[0], axis=0)
-    #     # Padding
-    #     if self.__padd:
-    #         self.__maze = np.pad(self.__maze, pad_width=1, mode='constant', constant_values=0)
-    #     return self.__maze
