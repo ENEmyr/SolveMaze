@@ -39,6 +39,19 @@ function stringToMap(str) {
   return map;
 }
 
+function getInitDir(map2D) {
+  for (let i = 0; i < map2D.length; i++) {
+    for (let j = 0; j < map2D[i].length; j++) {
+      if (map2D[i][j] == 's') {
+        if (i == 0) return 2;
+        else if (i == map2D[i].length - 1) return 3;
+        else if (j == 0) return 1;
+        else return 0;
+      }
+    }
+  }
+}
+
 function mapToString(map2D) {
   let str = '';
   for (let i = 0; i < map2D.length; i++) {
@@ -129,8 +142,9 @@ function getRoute(map2DArray, path, endPoint) {
   return pathList;
 }
 
-function getCommands(pathList) {
+function getCommands(pathList, map2D) {
   let commands = [];
+  direction = getInitDir(map2D);
   let k = direction;
   for (let i = 1; i < pathList.length; i++) {
     xc = pathList[i - 1][0] - pathList[i][0];
@@ -174,5 +188,5 @@ const entrance = (args['entrance'].split(',')).map(x => parseInt(x));
 const maze2DArray = stringToMap(maze)
 const path = mapToTree(maze2DArray, entrance);
 const pathList = getRoute(maze2DArray, path, endPoint);
-const commands = getCommands(pathList);
+const commands = getCommands(pathList, maze2DArray);
 console.log(commands.toString())
