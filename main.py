@@ -22,7 +22,8 @@ def run(
         tick_rate:float = .1,
         show_maze:bool = True,
         dynamic_update_maze:bool = False,
-        debug_mode:bool = False
+        debug_mode:bool = False,
+        load_maze:bool = True
         ):
     # TODO: dynamictically update explored map, fix solver
     client = Client()
@@ -35,40 +36,43 @@ def run(
         sleep(.1)
     else:
         client.pub({'AngularDistance':'','StopExplore':'','EntranceExit':'','Command':''})
-    try:
-        # console.print('Step 1: Mapping\n', style='bold cyan')
-        with console.status("[bold cyan]Step 1: Mapping") as status:
-            while True:
-                ret = client.sub(['AngularDistance', 'StopExplore'])
-                if ret['StopExplore'] != None:
-                    console.print(' > Stop Mapping', style='red')
-                    client.pub({'StopExplore': ''})
-                    sleep(.2)
-                    if debug_mode:
-                        console.log('Stop Exploring', log_locals=True)
-                    break
-                if ret['AngularDistance'] != None:
-                    console.print(' > Mapping Local...', style='yellow')
-                    client.pub({'AngularDistance': ''})
-                    sleep(.2)
-                    if debug_mode:
-                        console.log('Put Map', log_locals=True)
-                    forward_distance, rotate_angle = odo.minimum_forward_distance(ret['AngularDistance'])
-                    mapper.map(forward_distance, rotate_angle, block_length)
-                sleep(tick_rate)
-    except KeyboardInterrupt:
-        client.pub({'AngularDistance':'','StopExplore':'','EntranceExit':'','Command':''}, verbose=debug_mode)
-    with console.status("[bold cyan]Step 2: Constructing a maze") as status:
-    # console.print('Step 2: Contructing a maze\n', style='bold cyan')
-        maze = mapper.construct()
-        max_col = maze.shape[0]
-        if show_maze:
-            # plt.axis('off')
-            plt.imshow(maze, cmap='Greys', interpolation='none')
-            plt.savefig('Maze.png')
-            plt.waitforbuttonpress()
-            if debug_mode:
-                console.log('Map Contructed', log_locals=True)
+    if not load_maze:
+        try:
+            # console.print('Step 1: Mapping\n', style='bold cyan')
+            with console.status("[bold cyan]Step 1: Mapping") as status:
+                while True:
+                    ret = client.sub(['AngularDistance', 'StopExplore'])
+                    if ret['StopExplore'] != None:
+                        console.print(' > Stop Mapping', style='red')
+                        client.pub({'StopExplore': ''})
+                        sleep(.2)
+                        if debug_mode:
+                            console.log('Stop Exploring', log_locals=True)
+                        break
+                    if ret['AngularDistance'] != None:
+                        console.print(' > Mapping Local...', style='yellow')
+                        client.pub({'AngularDistance': ''})
+                        sleep(.2)
+                        if debug_mode:
+                            console.log('Put Map', log_locals=True)
+                        forward_distance, rotate_angle = odo.minimum_forward_distance(ret['AngularDistance'])
+                        mapper.map(forward_distance, rotate_angle, block_length)
+                    sleep(tick_rate)
+        except KeyboardInterrupt:
+            client.pub({'AngularDistance':'','StopExplore':'','EntranceExit':'','Command':''}, verbose=debug_mode)
+        with console.status("[bold cyan]Step 2: Constructing a maze") as status:
+        # console.print('Step 2: Contructing a maze\n', style='bold cyan')
+            maze = mapper.construct()
+            if show_maze:
+                # plt.axis('off')
+                plt.imshow(maze, cmap='Greys', interpolation='none')
+                plt.savefig('Maze.png')
+                plt.waitforbuttonpress()
+                if debug_mode:
+                    console.log('Map Contructed', log_locals=True)
+    else:
+        with open('./constructed_maze.npy', 'rb') as f:
+            maze = np.load(f)
     if solve_mode:
         try:
             with console.status("[bold cyan]Step 3: Waiting for define an entrnace and exit of the maze") as status:
@@ -83,9 +87,9 @@ def run(
                         client.pub({'EntranceExit': ''})
                         sleep(.2)
                         break
-                    else:
-                        if debug_mode:
-                            console.log(ret, log_locals=True)
+                    # else:
+                    #     if debug_mode:
+                    #         console.log(ret, log_locals=True)
                     sleep(tick_rate)
         except KeyboardInterrupt:
             client.pub({'AngularDistance':'','StopExplore':'','EntranceExit':'','Command':''}, verbose=debug_mode)
@@ -93,6 +97,7 @@ def run(
                 np.save(f, maze, allow_pickle=True)
         with console.status("[bold cyan]Step 4: Solve the maze") as status:
         # console.print('Step 4: Solve the maze\n', style='bold cyan')
+            max_col = maze.shape[0]
             _entrance = list(map(lambda x: int(x), _entrance_exit[0].split(',')))
             _exit = list(map(lambda x: int(x), _entrance_exit[1].split(',')))
             maze = np.where(maze>0, -1, maze)
@@ -149,6 +154,7 @@ options = [
         optparse.make_option('-m', '--maze-size', type='int', dest='maze_size', help='size of the maze in blocks', default=6),
         optparse.make_option('-b', '--block-length', type='int', dest='block_length', help='length of a single block', default=400),
         optparse.make_option('-t', '--tick-rate', type='float', dest='tick_rate', help='wait for \'tick rate\' second to send another request to MQTT Broker', default=.1),
+        optparse.make_option('-l', '--load', action='store_true', dest='load_maze', help='load maze data', default=False),
         optparse.make_option('--show-maze', action='store_true', dest='show_maze', help='show constructed maze or not', default=False),
         optparse.make_option('--dynamic-update-maze', action='store_true', dest='dynamic', help='show constructed maze dynamictically', default=False),
         optparse.make_option('--debug', action='store_true', dest='debug', help='debug mode', default=False),
@@ -164,4 +170,5 @@ if __name__ == '__main__':
         options.tick_rate,
         options.show_maze, 
         options.dynamic, 
-        options.debug)
+        options.debug,
+        options.load_maze)
