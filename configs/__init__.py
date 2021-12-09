@@ -29,7 +29,7 @@ class BrokerConfig:
             raise Exception('Has no attribute.')
 
 class MQTTConfig:
-    CONFIG.read_file(open(path.join(CURRENT_PATH, 'mqtt2.conf')))
+    CONFIG.read_file(open(path.join(CURRENT_PATH, 'mqtt.conf')))
     Broker = CONFIG.get(section='CONNECTION', option='Broker')
     Port = CONFIG.get(section='CONNECTION', option='Port')
     Keepalive = CONFIG.get(section='CONNECTION', option='Keepalive')
@@ -45,7 +45,7 @@ class MQTTConfig:
             new attribute got updated. '''
         if name in MQTTConfig.__dict__.keys():
             CONFIG.set(section='CONNECTION', option=name, value=value)
-            with open(path.join(CURRENT_PATH, 'mqtt2.conf'), 'w') as configfile:
+            with open(path.join(CURRENT_PATH, 'mqtt.conf'), 'w') as configfile:
                 CONFIG.write(configfile)
             MQTTConfig.Broker = CONFIG.get(section='CONNECTION', option='Broker')
             MQTTConfig.Port = CONFIG.get(section='CONNECTION', option='Port')
